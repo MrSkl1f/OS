@@ -43,8 +43,7 @@ pid_t fork_child(int child_num, int *fd)
     {
         convert_to_str(getpid(), pid);
         close(fd[0]);
-        write(fd[1], pid, sizeof pid - 1);
-        printf("Child %d wrote %s\n", child_num, pid);
+        write(fd[1], pid, sizeof(pid));
         exit(0);
     }
     return child;
@@ -56,7 +55,7 @@ void wait_for_childs(int *fd)
     char pid[10];
     read(fd[0], pid, 10);
     pid_t child = wait(&stat_val);
-    printf("Child has finished: PID=%d\n", child);
+    printf("Child %d wrote %s\n", child, pid);
     if (WIFEXITED(stat_val))
             printf("Child=%d completed normally with code=%d.\n", child, WEXITSTATUS(stat_val));
     else if (WIFSIGNALED(stat_val))
