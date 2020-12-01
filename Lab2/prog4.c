@@ -76,7 +76,7 @@ int main()
     pid_t child_1 = fork_child(1, fd);
     pid_t child_2 = fork_child(2, fd);
 
-    printf("parent: pid=%-5d, child_1=%-5d, child_2=%-5d\n", getpid(), child_1, child_2);
+    printf("parent: pid=%d, group=%d, child_1=%d, child_2=%d\n", getpid(), getpgrp(), child_1, child_2);
     close(fd[1]);
     wait_for_childs(fd);
     wait_for_childs(fd);

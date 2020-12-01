@@ -15,7 +15,7 @@
 
 void print_child(int child_num, char *descr)
 {
-    printf("child: number=%d pid=%-5d parent=%-5d group=%-5d %s\n", child_num, getpid(), getppid(), getpgrp(), descr);
+    printf("child: number=%d pid=%d parent=%d group=%d %s\n", child_num, getpid(), getppid(), getpgrp(), descr);
 }
 
 pid_t fork_child(int child_num) 
@@ -41,7 +41,7 @@ int main()
     pid_t child_1 = fork_child(1);
     pid_t child_2 = fork_child(2);
 
-    printf("parent: pid=%-5d, child_1=%-5d, child_2=%-5d\n", getpid(), child_1, child_2);
+    printf("parent: pid=%d, group=%d, child_1=%d, child_2=%d\n", getpid(), getpgrp(), child_1, child_2);
 
     return 0;
 }

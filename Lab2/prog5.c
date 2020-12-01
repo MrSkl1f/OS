@@ -73,7 +73,7 @@ void wait_for_childs(pid_t child, int stat_val)
     read(fd[0], pid, 10);
     printf("Child %d wrote %s\n", child, pid);
     if (WIFEXITED(stat_val))
-            printf("Child=%d completed normally with code=%d.\n", child, WEXITSTATUS(stat_val));
+        printf("Child=%d completed normally with code=%d.\n", child, WEXITSTATUS(stat_val));
     else if (WIFSIGNALED(stat_val))
         printf("Child=%d ended with a non-intercepted signal with code=%d.\n", child, WTERMSIG(stat_val));
     else if (WIFSTOPPED(stat_val))
@@ -114,7 +114,7 @@ int main()
 
     pid_t child_1 = fork_child(1);
     pid_t child_2 = fork_child(2);
-    printf("parent: pid=%-5d, child_1=%-5d, child_2=%-5d\n", getpid(), child_1, child_2);
+    printf("parent: pid=%d, group=%d, child_1=%d, child_2=%d\n", getpid(), getpgrp(), child_1, child_2);
     parent_read(child_1, child_2);
     return 0;
 }
