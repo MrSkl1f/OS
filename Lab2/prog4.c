@@ -17,7 +17,7 @@ pid_t fork_child(int child_num, int *fd)
         int child_pid = getpid();
         void *pid = &child_pid;
         close(fd[0]);
-        write(fd[1], pid, sizeof(pid));
+        write(fd[1], pid, sizeof(void *));
         exit(0);
     }
     return child;
@@ -28,17 +28,18 @@ void wait_for_childs(int *fd)
     close(fd[1]);
     
     int stat_val;
-    void *pid;
+    void *pid = (void *)malloc(sizeof(void *));
     read(fd[0], pid, sizeof(pid));
     
     pid_t child = wait(&stat_val);
     printf("Child %d wrote %d\n", child, *(int *)(pid));
     if (WIFEXITED(stat_val))
-            printf("Child=%d completed normally with code=%d.\n", child, WEXITSTATUS(stat_val));
+        printf("Child=%d completed normally with code=%d.\n", child, WEXITSTATUS(stat_val));
     else if (WIFSIGNALED(stat_val))
         printf("Child=%d ended with a non-intercepted signal with code=%d.\n", child, WTERMSIG(stat_val));
     else if (WIFSTOPPED(stat_val))
         printf("Child=%d stopped with %d code.\n", child, WSTOPSIG(stat_val));
+    free(pid);
 }
 
 int main() 

@@ -8,7 +8,7 @@ int flag = 0;
 
 void catch_signal(int sig_numb)
 {
-    printf("\nSignal Cntrl + C\n");
+    printf("\nSignal Ctrl + C\n");
     flag = 1;
 }
 
@@ -29,10 +29,13 @@ pid_t fork_child(int child_num, int *fd)
     }
     else if (child == 0) 
     {
-        int child_pid = getpid();
-        void *pid = &child_pid;
-        close(fd[0]);
-        write(fd[1], pid, sizeof(pid));
+        if (flag)
+        {
+            int child_pid = getpid();
+            void *pid = &child_pid;
+            close(fd[0]);
+            write(fd[1], pid, sizeof(pid));
+        }
         exit(0);
     }
     return child;
@@ -40,20 +43,27 @@ pid_t fork_child(int child_num, int *fd)
 
 void wait_for_childs(int *fd)
 {
-    close(fd[1]);
-    printf("YES\n");
     int stat_val;
-    void *pid;
-    read(fd[0], pid, sizeof(pid));
+    void *pid = (void *)malloc(sizeof(void *));
     
     pid_t child = wait(&stat_val);
-    printf("Child %d wrote %d\n", child, *(int *)(pid));
+
+    if (flag)
+    {
+        close(fd[1]);
+        read(fd[0], pid, sizeof(pid));
+        printf("Child %d wrote %d\n", child, *(int *)(pid));
+    }
+    else
+        printf("Child %d wrote nothing\n", child);
+
     if (WIFEXITED(stat_val))
             printf("Child=%d completed normally with code=%d.\n", child, WEXITSTATUS(stat_val));
     else if (WIFSIGNALED(stat_val))
         printf("Child=%d ended with a non-intercepted signal with code=%d.\n", child, WTERMSIG(stat_val));
     else if (WIFSTOPPED(stat_val))
         printf("Child=%d stopped with %d code.\n", child, WSTOPSIG(stat_val));
+    free(pid);
 }
 
 int main() 
@@ -71,6 +81,7 @@ int main()
     pid_t child_2 = fork_child(2, fd);
 
     printf("parent: pid=%d, group=%d, child_1=%d, child_2=%d\n", getpid(), getpgrp(), child_1, child_2);
+    
     wait_for_childs(fd);
     wait_for_childs(fd);
     
