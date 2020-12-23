@@ -159,6 +159,7 @@ void catch_signal(int signalNum)
 
 int main()
 {
+    srand(time(NULL));
     int shared_memory = get_shared_memory();
     int sem = get_sem();
 
