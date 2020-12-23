@@ -306,6 +306,7 @@ int main()
 \section{Задание}
 Написать программу, реализующую задачу «Читатели – писатели» по монитору Хоара с четырьмя функциями: Начать\_чтение, Закончить\_чтение, Начать\_запись, Закончить\_запись. В программе всеми процессами разделяется одно единственное значение в разделяемой памяти. Писатели ее только инкрементируют, читатели могут только читать значение.\par
 Для реализации взаимоисключения используются семафоры\par
+\textbf{Программа:}
 \begin{lstlisting}[label=task1, caption=Задание 2]
 #include <stdio.h>
 #include <stdlib.h>
@@ -316,7 +317,7 @@ int main()
 #include <sys/shm.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
-
+#include <time.h>
 #define ACTIVE_WRITER 0
 #define WAITING_WRITER 1
 #define ACTIVE_READER 2
@@ -324,14 +325,11 @@ int main()
 
 int* shared_buffer = NULL;
 
-struct sembuf canread[3] = 
+struct sembuf startread[5] =
 {
     {ACTIVE_WRITER, 0, 0},
     {WAITING_WRITER, 0, 0},
-    {WAITING_READER, 1, 0}
-};
-struct sembuf startread[2] =
-{
+    {WAITING_READER, 1, 0},
     {ACTIVE_READER, 1, 0},
     {WAITING_READER, -1, 0}
 };
@@ -340,14 +338,11 @@ struct sembuf stopread[1] =
     {ACTIVE_READER, -1, 0}
 };
 
-struct sembuf canwrite[3] = 
+struct sembuf startwrite[5] =
 {
     {ACTIVE_READER, 0, 0},
     {ACTIVE_WRITER, 0, 0},
-    {WAITING_WRITER, 1, 0}
-};
-struct sembuf startwrite[2] =
-{
+    {WAITING_WRITER, 1, 0},
     {ACTIVE_WRITER, 1, 0},
     {WAITING_WRITER, -1, 0}
 };
@@ -400,12 +395,7 @@ int get_shared_memory()
 
 void start_read(int sem)
 {
-    if (semop(sem, canread, 3) == -1)
-    {
-        perror("semop\n");
-        exit(1);
-    }
-    if (semop(sem, startread, 2) == -1)
+    if (semop(sem, startread, 5) == -1)
     {
         perror("semop\n");
         exit(1);
@@ -423,12 +413,7 @@ void stop_read(int sem)
 
 void start_write(int sem)
 {
-    if (semop(sem, canwrite, 3) == -1)
-    {
-        perror("semop\n");
-        exit(1);
-    }
-    if (semop(sem, startwrite, 2) == -1)
+    if (semop(sem, startwrite, 5) == -1)
     {
         perror("semop\n");
         exit(1);
@@ -500,12 +485,13 @@ void catch_signal(int signalNum)
 
 int main()
 {
+    srand(time(NULL));
     int shared_memory = get_shared_memory();
     int sem = get_sem();
 
     fork_proc(writer, sem, writers);
     fork_proc(reader, sem, readers);
- 
+    
     signal(SIGINT, catch_signal);
 
     for (int i = 0; i < writers + readers; i++)
@@ -518,7 +504,9 @@ int main()
 
     return 0;
 }
+
 \end{lstlisting}
+\textbf{Результат работы программы:}\par
 \begin{figure}[h!]
 	\centering
 	\includegraphics[scale=1]{source/2.png}

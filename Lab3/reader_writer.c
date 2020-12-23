@@ -7,7 +7,7 @@
 #include <sys/shm.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
-
+#include <time.h>
 #define ACTIVE_WRITER 0
 #define WAITING_WRITER 1
 #define ACTIVE_READER 2
@@ -15,14 +15,11 @@
 
 int* shared_buffer = NULL;
 
-struct sembuf canread[3] = 
+struct sembuf startread[5] =
 {
     {ACTIVE_WRITER, 0, 0},
     {WAITING_WRITER, 0, 0},
-    {WAITING_READER, 1, 0}
-};
-struct sembuf startread[2] =
-{
+    {WAITING_READER, 1, 0},
     {ACTIVE_READER, 1, 0},
     {WAITING_READER, -1, 0}
 };
@@ -31,14 +28,11 @@ struct sembuf stopread[1] =
     {ACTIVE_READER, -1, 0}
 };
 
-struct sembuf canwrite[3] = 
+struct sembuf startwrite[5] =
 {
     {ACTIVE_READER, 0, 0},
     {ACTIVE_WRITER, 0, 0},
-    {WAITING_WRITER, 1, 0}
-};
-struct sembuf startwrite[2] =
-{
+    {WAITING_WRITER, 1, 0},
     {ACTIVE_WRITER, 1, 0},
     {WAITING_WRITER, -1, 0}
 };
@@ -91,12 +85,7 @@ int get_shared_memory()
 
 void start_read(int sem)
 {
-    if (semop(sem, canread, 3) == -1)
-    {
-        perror("semop\n");
-        exit(1);
-    }
-    if (semop(sem, startread, 2) == -1)
+    if (semop(sem, startread, 5) == -1)
     {
         perror("semop\n");
         exit(1);
@@ -114,12 +103,7 @@ void stop_read(int sem)
 
 void start_write(int sem)
 {
-    if (semop(sem, canwrite, 3) == -1)
-    {
-        perror("semop\n");
-        exit(1);
-    }
-    if (semop(sem, startwrite, 2) == -1)
+    if (semop(sem, startwrite, 5) == -1)
     {
         perror("semop\n");
         exit(1);
@@ -191,6 +175,7 @@ void catch_signal(int signalNum)
 
 int main()
 {
+    srand(time(NULL));
     int shared_memory = get_shared_memory();
     int sem = get_sem();
 
