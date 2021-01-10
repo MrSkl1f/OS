@@ -4,7 +4,7 @@
 
 #define WRITERS 3
 #define READERS 5
-#define MAX_VAL 5
+#define MAX_VAL 10
 
 #define OK 0
 #define ERROR 1
@@ -72,27 +72,47 @@ void StopWrite()
 
 DWORD WINAPI Reader(LPVOID lpParam)
 {
-	while (value < WRITERS * MAX_VAL)
+	bool isEnd = FALSE;
+	while (!isEnd)
 	{
 		StartRead();
-		WaitForSingleObject(mutex, INFINITE);
-		printf("Reader %d (%d) read %d\n", (int)lpParam, GetCurrentThreadId(), value);
-		ReleaseMutex(mutex);
+		
+		if (value >= MAX_VAL)
+		{
+			isEnd = TRUE;
+		}
+		else
+		{
+			printf("Reader %d (%d) read %d\n", (int)lpParam, GetCurrentThreadId(), value);
+		}
+
 		StopRead();
-		Sleep(200);
+		Sleep(400);
 	}
 	return OK;
 }
 
 DWORD WINAPI Writer(LPVOID lpParam)
 {
-	for (int i = 0; i < MAX_VAL; i++)
+	bool isEnd = FALSE;
+	while (!isEnd)
 	{
 		StartWrite();
-		value++;
-		printf("Writer %d (%d) wrote %d\n", (int)lpParam, GetCurrentThreadId(), value);
+		WaitForSingleObject(mutex, INFINITE);
+
+		if (value >= MAX_VAL)
+		{
+			isEnd = TRUE;
+		}
+		else
+		{
+			value++;
+			printf("Writer %d (%d) wrote %d\n", (int)lpParam, GetCurrentThreadId(), value);
+		}
+
+		ReleaseMutex(mutex);
 		StopWrite();
-		Sleep(200);
+		Sleep(400);
 	}
 	return OK;
 }
