@@ -144,9 +144,13 @@ void StartRead()
 	{
 		WaitForSingleObject(canRead, INFINITE);
 	}
+	WaitForSingleObject(mutex, INFINITE);
+	
 	InterlockedDecrement(&waitingReaders);
 	InterlockedIncrement(&activeReaders);
 	SetEvent(canRead);
+	
+	ReleaseMutex(mutex);
 }
 
 void StopRead()
@@ -171,8 +175,8 @@ void StartWrite()
 
 void StopWrite()
 {
-	activeWriter = false;
 	ResetEvent(canWrite);
+	activeWriter = false;
 	if (waitingWriters)
 	{
 		SetEvent(canWrite);
@@ -200,7 +204,7 @@ DWORD WINAPI Reader(LPVOID lpParam)
 		}
 		
 		StopRead();
-		Sleep(200);
+		Sleep(400);
 	}
 	return OK;
 }
@@ -211,7 +215,6 @@ DWORD WINAPI Writer(LPVOID lpParam)
 	while (!isEnd)
 	{
 		StartWrite();
-		WaitForSingleObject(mutex, INFINITE);
 		
 		if (value >= MAX_VAL)
 		{
@@ -223,9 +226,8 @@ DWORD WINAPI Writer(LPVOID lpParam)
 			printf("Writer %d (%d) wrote %d\n", (int)lpParam, GetCurrentThreadId(), value);
 		}
 		
-		ReleaseMutex(mutex);
 		StopWrite();
-		Sleep(200);
+		Sleep(400);
 	}
 	return OK;
 }
@@ -310,7 +312,7 @@ int main()
 	CloseHandle(canWrite);
 	
 	return 0;
-}
+}	
 \end{lstlisting}
 
 \textbf{Результат работы программы:}\par
