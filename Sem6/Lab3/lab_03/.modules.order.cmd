@@ -1,0 +1,1 @@
+cmd_/home/mrskl1f/BMSTU/OS/Lab3/lab_03/modules.order := {   echo /home/mrskl1f/BMSTU/OS/Lab3/lab_03/md.ko;   echo /home/mrskl1f/BMSTU/OS/Lab3/lab_03/md1.ko;   echo /home/mrskl1f/BMSTU/OS/Lab3/lab_03/md2.ko;   echo /home/mrskl1f/BMSTU/OS/Lab3/lab_03/md3.ko; :; } | awk '!x[$$0]++' - > /home/mrskl1f/BMSTU/OS/Lab3/lab_03/modules.order

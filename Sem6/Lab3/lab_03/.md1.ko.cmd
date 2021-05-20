@@ -1,0 +1,1 @@
+cmd_/home/mrskl1f/BMSTU/OS/Lab3/lab_03/md1.ko := ld -r -m elf_x86_64 --build-id=sha1  -T ./scripts/module-common.lds -o /home/mrskl1f/BMSTU/OS/Lab3/lab_03/md1.ko /home/mrskl1f/BMSTU/OS/Lab3/lab_03/md1.o /home/mrskl1f/BMSTU/OS/Lab3/lab_03/md1.mod.o;  true
