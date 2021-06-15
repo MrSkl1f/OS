@@ -1,0 +1,244 @@
+Существует высокоприоритетные tasklet и просто tasklet.
+С очередями работ подругому. 
+У нас в системе имеется реальная параллельность и работа в такой системе выполняется с учетом этой параллельности.
+Подсистема ввода вывода.
+Обеспечить возможность храгнения и обращения к сохраненной на внешних энергонезависимых носителях информации. Речь идет о внешних устройствах. Сама задача работы с файлами является внешние устройства типа дисков - предоставить в распоряжение пользователя интерфейс, с помощью которого пользователь может получить доступ к файлу. Но при этом диск сам по себе является внешним устройством. 
+Возникает очень сложная для системы задача - управление внешними устойствами. Мыши, клавиатуры, сканеры и т.д.
+В unix все файл, устройство тоже файл. Но это довольно условно. Когда мы работаем с устройством - можем рассматривать его как открытый файл. Это устройство описывается как struct inode. Используем struct file_operations для работы с устройствами. Но устройства - файл устройства (device файл), соответственно - это специальный файл и в итоге мы с этим устройством должны уметь работать. Мы можем посмотреть файлы устройства в /dev и там увидим в основном файлы с буквы c - char device, b - block device
+Для идентификации устройства ядро использует старший и незначительный
+В системе устройства делятся на наборы, которые определяются номерами major
+major
+minor
+SCSI диски - major - 8
+каждое отдельное устройство на диске
+partition
+у них есть принятые имена, которые используются, например cat/dev/mouse
+less -f /dev/hda
+/dev/zero
+/dev/null
+и т.д.
+Имена файлов устройств в некотором смысле являются произвольными
+Можно увидеть и старший и младший номера в диске, если набрать /dev/sda:
+brw-rw----1 root disk 8 0 may 5 1998 /dev/sda
+/proc/devices
+# ls -l /dev/ | grep "^C"
+будет выведены имена символьных устройств
+<linux/types.h>
+dev_t
+MAJOR(dev_t dev);
+MINOR(dev_t dev);
+MKDEV(int major, int minor)
+SATA
+unsigned int major(dev_t dev);
+unsigned int minor(dev_t dev);
+dev_t makedev(unsigned int maj, unsigned int min);
+
+struct stat
+{
+    dev_t st_dev; //id устройство, на котором находится файл, мы можем, получив id, с помощью major и minor получить старший и младший номера этого устройства
+    ...
+}
+struct statx
+{
+    //если файл представляет устройство, то след 2 поля содержат id устройства
+    ...
+    _u32 stx_rdev_major;
+    _u32 stx_rdev_minor;
+    // есть еще 2 поля: следующие 2 поля содержат id устройства, содержащего файловую систему, в которой располагается файл
+    _u32 stx_dev_major;
+    _u32 stx_dev_minor;
+};
+если хотим напсать драйвер для нашего устройства
+динамически получить 
+alloc_chrdev_region()
+register_chdev_region()
+<linux/fs.h>
+int register_chdev_region(dev_t first, unsigned int count, char *name)
+Драйверы бывают 3 типов:
+1. драйверы, встроенные в ядро
+2. драйверы, реализованные как загружаемые модули ядра
+файлы модуля ядра располагаются в каталоге /lib/modules
+
+modprobe - автоматически загружает модули
+modprobe -c 
+
+3. код драйверов поделен между ядром и специальной утилитой
+например, у драйвера принтера ядро отвечает за взаимодействие с параллельным портом
+а формирование управляющих сигналов для принтера выполняет демон печати lpd, который использует для этого специальную программу фильтр
+еще одним примером драйверов такого типа являются драйверы модемов
+в системе имеются специальные структуры, самой низкоуровневой структурой, которая фактически может и не присутствовать нигде в коде, называется базовая структура устройства struct device
+struct device 
+{
+    struct device *patent;
+    ...
+    const char *init_name; // первоначальное имя устройства
+    const struct device_type *type; // специфическая информация для типа
+    ...
+    struct device_driver *driver; // драйвер, который описывает данное устройство 
+    ...
+    struct device_dma_parameters *dma_params; // 
+    ...
+    struct class *class; // устройство относится к определенному классу
+    ...
+    void (*release)(struct device *dev); // нет других указателей на другие функции
+    ...
+};
+
+struct device_driver *driver; // драйвер, который описывает данное устройство -> 
+    #ifdef CONFIG NUMA
+        int numa_node;
+    #endif
+NUMA - Not-UNIFORM Memory Access - не равномерный доступ к памяти
+время доступа к памяти определяется ее расположение по отношении к процессору
+
+dma - direct memory access - прямой доступ к памяти. Устройство может записывать в оперативную память и читать минуя регистры процессора
+фактически освобождает процессор от работы
+в машине постоянно идет передача данных
+struct device_driver 
+{
+    const char *name;
+    struct bus_type *bus;
+    struct module *owner;
+    const char *mod_name;
+    ...
+    int (*probe)(struct device *dev);
+    int (*remove)(struct device *dev);
+    void (*shutdown)(struct device *adv);
+    ...
+}
+
+suspend - перевести устройство в режим сна 
+resume
+probe - вызывается чтобы запросить существование конкретного устройства
+если драйвер может работать с устройством, то будет возврщен 0
+remove - вызывается для того, чтобы удалить устройство из системы и отвзязать устройство и его драйвер (разорвать связь)
+
+важнейшие функции, например для создания собственного символьного устройства 
+идентифицированное char устройство добавляется
+static int __init ext_driver_init(void)
+{
+    /* Allocating Major number */
+    if (alloc_chrdev_region(&dev, 0, 1, "ext_dev") < 0)
+    {
+        printk(KERN_INFO "Cannot allocate\n");
+        return -1;
+    }
+    printk(KERN_INFO "Major=%d, Minor=%d\n", MAJOR(dev), MINOR(dev));
+    ...
+    /* Adding char dev to the system */
+    if (cdev_add(&ext_cdev, dev, 1)) {----//----}
+    /* Creating struct class */
+    if ((dev_class = class_create(THIS_MODULE, "etx_class")) == NULL)
+    {
+        ----//----
+    }
+    /* Creating device */
+    if ((device_create(dev_class, NULL, dev, NULL, "etx_device")) == NULL)
+    {...}
+    if (request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "etx_device", (void *)(irq_handler))) 
+    {...}
+    own_workqueue = create_workqueue("own_wq");
+    ...
+}
+static irqreturn_t irq_hand;er(int irq, void *dev_id)
+{
+    ...
+    queue_work(own_workqueue, &work);
+    return IRQ_HANDLED;
+}
+надо инициализировать работу
+в драйвере можем определить свои операции, использовать для этого struct file_operations и зарегистрировать свои функции
+static struct file_operations fops = 
+{
+    .owner = THIS_MODULE,
+    .read = etx_read,
+    .write = etx_write,
+    .open = etx_open,
+    .release = etx_release, 
+}
+если речь идет о блочном устройстве, в init мы должны вызвать специальную функцию
+есть еще есть структуры, описывающие символьную и блочную
+посмотреть самостоятельно функции 
+static int __init sblkdev_init(void)
+{
+    int ret = SUCCESS;
+    _sblkdev_major = register_blkdev(_sblkdev_major, _sblkdev_name);
+    if (_sblkdev_major <= 0) {
+        printk(KERN_WARNING "...");
+        return -EBUSY'
+    }
+    // необходимо добавить устройство
+    ret = sblkdev_add_device();
+    if (ret) {...}
+    ...
+} 
+sblkdev_add_device выполняет инициализацию блочного устройства
+это наша функция
+в этой функции выделяется память для соответствующей структуры, выделяется буфер
+посмотрим, во-первых, структуру, которая представляет устройство
+если создаете свое устройство, то используются функции для создания устройства
+typedef struct sblkdev_device_s
+{
+    sector_t capacity; / device size in bytes
+    u8 *data;
+    atomic_t open_counter;
+    ... 
+    struct request_queue *queue; 
+    struct gemdisk * disk; <- struct gendir * disk = alloc_disk(1);
+} sblkdev_device_t;
+disk major присваивается значение, которое получили раньше disk_minor присваивается 0
+необходимо выполнить большой объем действий для работы с этим блочным устройством
+необходимо 1 - под структуру выделяем память, чтобы хранить данные, которые запишем в поля этой структуры
+2 - инициализируется очередь запросов обработки, чтобы была возможность обрабатывать эти запросы 
+задачей блочного устройства является хранение данных, которые мы можем вдруг на него записать.
+такая очередь должна быть инициализирована
+static int sblkdev_add_device(void) 
+{
+    ...
+    sblkdev_device_t *dev = kzalloc(sizeof(sblkdev_device_t), GFP_KERNEL);
+    // необходимо инициализировать очередь обработки
+}
+
+static struct blk_mq_ops _mq_ops = 
+{
+    .queue_rq = queu_rq,
+}
+
+static const struct block_device_operations _fops = 
+{
+    .owner = THIS_MODULE,
+    .open = _open,
+    .release = _release,
+    .ioctl = _ioctl,
+    #ifden CONFIG_COMPAT
+        .compat_ioctl = _compat_ioctl,
+    #endif
+};
+3 точки входа для нашего блочного устройства
+static void _exit sblkdev_exit(void)
+{
+    sblkdev_remove_device();
+    ...
+}
+static void sblkdev_remove_device(void)
+{
+    ...
+    del_gendisk(dev->disk);
+    ...
+    blk_cleanup_queue(dev->queue);
+    ...
+    _sblkdev_device = NULL;
+}
+
+struct usb_driver
+{
+    const char *name;
+    int(*probe)(struct usb_interface *intf, const struct usb_device_id *id);
+    void (*disconnect)(struct usb_interface *intf);
+    ...
+    const struct usb_device_id *id_table;
+    ...
+};
+probe для того, чтобы определить, что устройство доступно
+для поддержания горячего подключения - таблица, т.е. таблица struct ubs_device_id содержит список всех различных usb устройств, которые может распознать данный драйвер, если эта переменная не определена, то callback функция обратного вызова probe никогда не будет вызвана
+существуют примеры заполнения этой структуры, обычно в них указывается vendor и id device идентификатор и product id
