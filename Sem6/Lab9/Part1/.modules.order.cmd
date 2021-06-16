@@ -1,0 +1,1 @@
+cmd_/home/mrskl1f/BMSTU/OS/OS/Sem6/Lab9/Part1/modules.order := {   echo /home/mrskl1f/BMSTU/OS/OS/Sem6/Lab9/Part1/tasklet.ko; :; } | awk '!x[$$0]++' - > /home/mrskl1f/BMSTU/OS/OS/Sem6/Lab9/Part1/modules.order
